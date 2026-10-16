@@ -1,3 +1,6 @@
+// Avine storefront data and client-side interactions.
+// This file creates the product catalog, cart behavior, and page-level UI flows for the static storefront.
+
 const products = [
   {id:"phone-01",name:"The One Phone",category:"Phones",price:38990,tag:"Bestseller",image:"https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=850&q=85",description:"A beautifully balanced everyday phone with a vivid display, thoughtful camera, and all-day battery. Made to feel just right in your hand."},
   {id:"phone-02",name:"One Phone Mini",category:"Phones",price:29990,tag:"Just landed",image:"https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=850&q=85",description:"Everything you love about a great phone, in a comfortably compact size. Clear, capable, and ready for wherever the day goes."},
@@ -15,12 +18,14 @@ const products = [
   {id:"access-03",name:"Carry-All Pouch",category:"Accessories",price:1790,tag:"Just landed",image:"https://images.unsplash.com/photo-1622560480654-d96214fdc887?auto=format&fit=crop&w=850&q=85",description:"A soft, sturdy home for your everyday essentials. Room for cables, earbuds, and all the little things you reach for."}
 ];
 
+// Uses the Philippine peso format consistently across the storefront.
 const formatPrice = (price) => new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
   maximumFractionDigits: 0
 }).format(price);
 
+// Reads browser-stored data with a safe fallback when the key is missing or malformed.
 const readStorage = (key, fallback) => {
   try {
     const value = localStorage.getItem(key);
@@ -68,6 +73,7 @@ function addToCart(productId, quantity = 1) {
   showToast("Added to your bag. Good choice.");
 }
 
+// Generates each product card markup from the storefront data array.
 function productCard(product) {
   return `<article class="product-card" data-product-id="${product.id}">
     <div class="product-image-wrap">
@@ -80,7 +86,10 @@ function productCard(product) {
   </article>`;
 }
 
+// Tracks the current state of the product catalog filters and pagination.
 const shopState = {category: [], min: 0, max: 60000, query: "", sort: "featured", page: 1, perPage: 6};
+
+// Filters the master catalog based on search, price, category, and sort options.
 function getFilteredProducts() {
   let filtered = products.filter((product) => {
     const matchesCategory = shopState.category.length === 0 || shopState.category.includes(product.category);
@@ -95,6 +104,7 @@ function getFilteredProducts() {
   return filtered;
 }
 
+// Renders the filtered catalog and updates the count and page controls for the shop view.
 function renderShop() {
   const grid = document.querySelector('[data-products="shop"]');
   if (!grid) return;
@@ -121,6 +131,7 @@ function renderPagination(pageCount) {
   pagination.innerHTML = buttons.join("");
 }
 
+// Initializes the shop page: filters, sorting, search, pagination, and mobile controls.
 function initShop() {
   const grid = document.querySelector('[data-products="shop"]');
   if (!grid) return;
@@ -199,11 +210,13 @@ function initShop() {
   refresh();
 }
 
+// Home page hero slides used by the rotating banner on the landing page.
 const slides = [
   {title:"Latest<br><span>Gadget.</span>",description:"Thoughtful technology. Beautifully made. Meet the little things that make a big difference.",image:"https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=1500&q=90"},
   {title:"Sound<br><span>Mindful.</span>",description:"Find your own rhythm with rich, considered sound for wherever the day takes you.",image:"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1500&q=90"},
   {title:"Move<br><span>Your Way.</span>",description:"A thoughtful little companion for all your everyday wins, big and small.",image:"https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=1500&q=90"}
 ];
+// Builds the featured products block and configures the hero carousel behavior.
 function initHome() {
   const featured = document.querySelector('[data-products="featured"]');
   if (featured) featured.innerHTML = [products[0], products[4], products[8], products[11]].map(productCard).join("");
@@ -223,6 +236,7 @@ function initHome() {
   document.querySelectorAll("[data-slide-to]").forEach((dot) => dot.addEventListener("click", () => showSlide(Number(dot.dataset.slideTo))));
 }
 
+// Adds shared site interactions: theme toggle, mobile menu, quick-view modal, and cart updates.
 function initGlobalInteractions() {
   document.querySelectorAll(".site-header").forEach((header) => {
     const actions = header.querySelector(".header-actions");
@@ -305,6 +319,7 @@ function initGlobalInteractions() {
   updateCartCount();
 }
 
+// Handles the contact form submission UX and success state messaging.
 function initContact() {
   const form = document.querySelector(".contact-form");
   if (!form) return;
@@ -319,6 +334,7 @@ function initContact() {
   });
 }
 
+// Handles the demo auth flow, validation, and redirect behavior for sign-in and sign-up forms.
 function initAuth() {
   const forms = document.querySelectorAll(".auth-form");
   if (!forms.length) return;
@@ -371,6 +387,7 @@ function initAuth() {
   }));
 }
 
+// Initializes all page-specific behavior once the DOM is ready.
 document.addEventListener("DOMContentLoaded", () => {
   initGlobalInteractions();
   initHome();
