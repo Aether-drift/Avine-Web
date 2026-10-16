@@ -4,13 +4,14 @@ A static storefront demo for an e-commerce brand called Avine. The site includes
 
 ## Project overview
 
-This project is a front-end-only website built with plain HTML, CSS, and JavaScript.
+This project is a front-end-only website built with HTML, Tailwind CSS via CDN, custom CSS, and vanilla JavaScript. It uses a hybrid styling approach: Tailwind handles common layout and responsive utilities, while `styles.css` retains brand-specific artwork, imagery, and complex component effects.
 
 - `index.html` renders the home page and hero carousel.
 - `shop.html` renders the product catalog with filtering and sorting.
 - `contact.html` contains the contact form and map card.
 - `auth.html` provides a demo sign-in and sign-up flow.
-- `styles.css` contains all app styling.
+- Tailwind CSS is loaded from the CDN in each HTML page; the inline configuration enables class-based dark mode and shared fonts.
+- `styles.css` contains brand-specific styling, decorative artwork, animations, and remaining component details.
 - `script.js` contains product data, local state logic, cart behavior, and page initialization.
 
 ## Features
