@@ -1,13 +1,65 @@
 <!DOCTYPE html>
 <html lang="en-PH" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#f4f2eb"><title>Welcome to AVINE</title>
-  <script>if(localStorage.getItem('avine-theme')==='dark')document.documentElement.classList.add('dark');</script><script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],display:['Manrope','sans-serif']}}}}</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f2eb">
+  <title>Welcome to AVINE</title>
+  <script>if(localStorage.getItem('avine-theme')==='dark')document.documentElement.classList.add('dark');</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],display:['Manrope','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body data-page="auth">
-  <header class="auth-header flex h-[82px] items-center justify-between border-b border-[var(--line)] px-[6%] max-[760px]:h-[68px] max-[760px]:px-5 dark:bg-[#171d19] dark:border-[var(--line)]"><a class="brand" href="index.html">AVINE<span class="brand-dot">.</span></a><div><span class="auth-header-prompt">New around here?</span> <button class="auth-switch auth-header-switch" data-auth-switch="signup">Create an account ↗</button><button class="theme-toggle inline-flex cursor-pointer items-center border-0 bg-transparent p-[5px]" aria-label="Switch color theme"><svg class="h-[17px] w-[17px] fill-none stroke-current sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg><svg class="h-[17px] w-[17px] fill-none stroke-current moon-icon" viewBox="0 0 24 24"><path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z"></path></svg></button></div></header>
-  <main class="auth-main grid min-h-[calc(100vh-82px)] grid-cols-[43%_57%] max-[760px]:min-h-[calc(100vh-68px)] max-[760px]:grid-cols-1"><div class="auth-visual"><div class="auth-visual-image"></div><p>GOOD THINGS,<br>THOUGHTFULLY MADE.</p><span>THE EVERYDAY, ELEVATED — AVINE</span></div><section class="auth-panel flex items-center justify-center px-10 py-[54px] max-[760px]:items-start max-[760px]:px-[22px] max-[760px]:py-[43px]"><div class="auth-form-box"><p class="eyebrow">YOUR AVINE, YOUR WAY</p><div class="auth-form login-form active"><h1>Welcome back<span class="brand-dot">.</span></h1><p class="auth-subtitle">Good to see you again. Sign in to continue.</p><form data-auth-form="login"><label>Email address<input type="email" name="email" placeholder="you@example.com" autocomplete="email" required></label><label>Password<span class="forgot-row"><span></span><a href="#" data-forgot-password>Forgot password?</a></span><input type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required minlength="8"></label><label class="check-label"><input type="checkbox" name="remember"> <span>Remember me</span></label><p class="auth-error" role="alert"></p><button class="button button-dark auth-submit inline-flex min-h-[47px] items-center justify-center gap-[30px] border border-transparent bg-[#222b24] px-5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-[#39483b] cursor-pointer" type="submit">Log in <span>↗</span></button></form><div class="auth-divider"><span>OR</span></div><button class="google-button" type="button"><b>G</b> Continue with Google</button><p class="auth-switch-copy">No account yet? <button class="auth-switch" data-auth-switch="signup">Sign up</button></p></div>
-    <div class="auth-form signup-form"><h1>Make yourself at home<span class="brand-dot">.</span></h1><p class="auth-subtitle">A little more good in your everyday starts here.</p><form data-auth-form="signup"><label>Full name<input type="text" name="name" placeholder="Your full name" autocomplete="name" required></label><label>Email address<input type="email" name="email" placeholder="you@example.com" autocomplete="email" required></label><label>Password<input type="password" name="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required><small class="field-hint">At least 8 characters</small></label><label>Confirm password<input type="password" name="confirmPassword" placeholder="Re-enter password" autocomplete="new-password" minlength="8" required></label><label class="check-label terms-label"><input type="checkbox" name="terms" required> <span>I agree to the <a href="#">Terms &amp; Policy</a></span></label><p class="auth-error" role="alert"></p><button class="button button-dark auth-submit inline-flex min-h-[47px] items-center justify-center gap-[30px] border border-transparent bg-[#222b24] px-5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-[#39483b] cursor-pointer" type="submit">Create account <span>↗</span></button></form><p class="auth-switch-copy">Already have an account? <button class="auth-switch" data-auth-switch="login">Log in</button></p></div><p class="auth-back"><a href="index.html">← Back to Avine</a></p></div></section></main><div class="toast" role="status" aria-live="polite"></div><script src="script.js"></script>
+  <header class="auth-header flex h-[82px] items-center justify-between border-b border-[var(--line)] px-[6%] max-[760px]:h-[68px] max-[760px]:px-5 dark:bg-[#171d19] dark:border-[var(--line)]">
+    <a class="brand" href="index.html">AVINE<span class="brand-dot">.</span></a>
+    <div><span class="auth-header-prompt">New around here?</span> <button class="auth-switch auth-header-switch" data-auth-switch="signup">Create an account ↗</button>
+      <button class="theme-toggle inline-flex cursor-pointer items-center border-0 bg-transparent p-[5px]" aria-label="Switch color theme">
+        <svg class="h-[17px] w-[17px] fill-none stroke-current sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>
+        <svg class="h-[17px] w-[17px] fill-none stroke-current moon-icon" viewBox="0 0 24 24"><path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z"></path></svg>
+      </button>
+    </div>
+  </header>
+  <main class="auth-main grid min-h-[calc(100vh-82px)] grid-cols-[43%_57%] max-[760px]:min-h-[calc(100vh-68px)] max-[760px]:grid-cols-1">
+    <div class="auth-visual"><div class="auth-visual-image"></div><p>GOOD THINGS,<br>THOUGHTFULLY MADE.</p><span>THE EVERYDAY, ELEVATED — AVINE</span></div>
+    <section class="auth-panel flex items-center justify-center px-10 py-[54px] max-[760px]:items-start max-[760px]:px-[22px] max-[760px]:py-[43px]">
+      <div class="auth-form-box">
+        <p class="eyebrow">YOUR AVINE, YOUR WAY</p>
+        <div class="auth-form login-form active">
+          <h1>Welcome back<span class="brand-dot">.</span></h1>
+          <p class="auth-subtitle">Good to see you again. Sign in to continue.</p>
+          <form data-auth-form="login">
+            <label>Email address<input type="email" name="email" placeholder="you@example.com" autocomplete="email" required></label>
+            <label>Password<span class="forgot-row"><span></span><a href="#" data-forgot-password>Forgot password?</a></span><input type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required minlength="8"></label>
+            <p class="field-hint">You'll stay signed in on this browser.</p>
+            <p class="auth-error" role="alert"></p>
+            <button class="button button-dark auth-submit inline-flex min-h-[47px] items-center justify-center gap-[30px] border border-transparent bg-[#222b24] px-5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-[#39483b] cursor-pointer" type="submit">Log in <span>↗</span></button>
+          </form>
+          <p class="auth-switch-copy">No account yet? <button class="auth-switch" data-auth-switch="signup">Sign up</button></p>
+        </div>
+        <div class="auth-form signup-form">
+          <h1>Make yourself at home<span class="brand-dot">.</span></h1>
+          <p class="auth-subtitle">A little more good in your everyday starts here.</p>
+          <form data-auth-form="signup">
+            <label>First name<input type="text" name="firstName" placeholder="Your first name" autocomplete="given-name" required></label>
+            <label>Last name<input type="text" name="lastName" placeholder="Your last name" autocomplete="family-name" required></label>
+            <label>Email address<input type="email" name="email" placeholder="you@example.com" autocomplete="email" required></label>
+            <label>Password<input type="password" name="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required><small class="field-hint">At least 8 characters</small></label>
+            <label>Confirm password<input type="password" name="confirmPassword" placeholder="Re-enter password" autocomplete="new-password" minlength="8" required></label>
+            <label class="check-label terms-label"><input type="checkbox" name="terms" required> <span>I agree to the <a href="about-faq.html">Terms &amp; Policy</a></span></label>
+            <p class="auth-error" role="alert"></p>
+            <button class="button button-dark auth-submit inline-flex min-h-[47px] items-center justify-center gap-[30px] border border-transparent bg-[#222b24] px-5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-[#39483b] cursor-pointer" type="submit">Create account <span>↗</span></button>
+          </form>
+          <p class="auth-switch-copy">Already have an account? <button class="auth-switch" data-auth-switch="login">Log in</button></p>
+        </div>
+        <p class="auth-back"><a href="index.html">← Back to Avine</a></p>
+      </div>
+    </section>
+  </main>
+  <div class="toast" role="status" aria-live="polite"></div>
+  <script src="script.js"></script>
 </body>
 </html>

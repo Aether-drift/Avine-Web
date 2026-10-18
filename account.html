@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en-PH" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f2eb">
+  <title>Your account — AVINE</title>
+  <script>if(localStorage.getItem('avine-theme')==='dark')document.documentElement.classList.add('dark');</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],display:['Manrope','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="account">
+  <div class="announcement">A little something for your everyday <span>— free delivery on orders over ₱5,000</span></div>
+  <header class="site-header commerce-header">
+    <a class="brand" href="index.html">AVINE<span class="brand-dot">.</span></a>
+    <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false"><span></span><span></span></button>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="index.html">Home</a><a href="shop.html">Shop</a><a href="about-faq.html">About &amp; FAQ</a><a href="contact.html">Contact</a>
+    </nav>
+    <div class="header-actions">
+      <button class="theme-toggle" aria-label="Switch color theme"><svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2"></path></svg><svg class="moon-icon" viewBox="0 0 24 24"><path d="M20.2 15.1A8.5 8.5 0 1 1 8.9 3.8 8.5 8.5 0 0 0 20.2 15.1Z"></path></svg></button>
+      <a class="login-link" href="auth.html">Log in</a><a class="signup-link" href="auth.html?mode=signup">Sign up</a>
+      <a class="cart-link" href="cart.html">Cart (<b data-cart-count>0</b>)</a>
+    </div>
+  </header>
+  <main class="commerce-page section-wrap">
+    <p class="eyebrow"><a href="index.html">HOME</a> <span>/</span> YOUR ACCOUNT</p>
+    <div class="commerce-heading"><div><h1>Your account<span class="brand-dot">.</span></h1><p>Keep your Avine details up to date.</p></div><button class="button button-outline" data-logout>Log out</button></div>
+    <div class="account-grid">
+      <section class="account-card">
+        <p class="eyebrow">ACCOUNT DETAILS</p>
+        <form class="profile-form" data-profile-form>
+          <label>First name<input type="text" name="firstName" autocomplete="given-name" required></label>
+          <label>Last name<input type="text" name="lastName" autocomplete="family-name" required></label>
+          <label>Email address<input type="email" name="email" readonly aria-describedby="email-note"></label>
+          <small id="email-note">Email address is used to identify your account.</small>
+          <button class="button button-dark" type="submit">Save changes ↗</button>
+        </form>
+      </section>
+      <aside class="account-card account-overview">
+        <p class="eyebrow">YOUR AVINE</p>
+        <a href="cart.html"><strong data-profile-cart-count>0</strong><span>items in your bag</span> ↗</a>
+        <a href="#orders"><strong>Order history</strong><span>See your confirmed purchases</span> ↗</a>
+      </aside>
+    </div>
+    <section class="account-orders" id="orders"><p class="eyebrow">PAST PURCHASES</p><h2>Your orders</h2><div data-order-list></div></section>
+  </main>
+  <footer class="site-footer"><div class="section-wrap"><a class="brand" href="index.html">AVINE<span class="brand-dot">.</span></a><p>Good things, thoughtfully made.</p></div></footer>
+  <script src="script.js"></script>
+</body>
+</html>

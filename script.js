@@ -39,15 +39,24 @@ const readStorage = (key, fallback) => {
 const writeStorage = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch (error) {
     console.error(`Unable to save ${key} to local storage.`, error);
     showToast("Your browser couldn't save this change.");
+    return false;
   }
 };
 
 let toastTimer;
 function showToast(message) {
-  const toast = document.querySelector(".toast");
+  let toast = document.querySelector(".toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.className = "toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    document.body.append(toast);
+  }
   if (!toast) return;
   toast.textContent = message;
   toast.classList.add("show");
@@ -55,22 +64,281 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
+const normalizeEmail = (email) => email.trim().toLowerCase();
+const accountKey = "avine-accounts";
+
+function getAccounts() {
+  const accounts = readStorage(accountKey, []);
+  return Array.isArray(accounts) ? accounts : [];
+}
+
+function getCurrentUser() {
+  const session = readStorage("avine-session", null);
+  if (!session || !session.email) return null;
+  return getAccounts().find((account) => account.email === session.email) || null;
+}
+
+function isLoggedIn() {
+  return Boolean(getCurrentUser());
+}
+
+function cartStorageKey() {
+  const user = getCurrentUser();
+  return user ? `avine-cart:${encodeURIComponent(user.email)}` : "avine-cart:guest";
+}
+
+function getCart() {
+  const saved = readStorage(cartStorageKey(), []);
+  if (!Array.isArray(saved)) return [];
+  return saved.reduce((cart, item) => {
+    const product = item && products.find((entry) => entry.id === item.id);
+    if (product && Number.isInteger(item.quantity) && item.quantity > 0) {
+      cart.push({...product, quantity: item.quantity});
+    }
+    return cart;
+  }, []);
+}
+
 function updateCartCount() {
-  const cart = readStorage("avine-cart", {});
-  const count = Object.values(cart).reduce((total, quantity) => total + (Number(quantity) || 0), 0);
+  const count = getCart().reduce((total, item) => total + item.quantity, 0);
   document.querySelectorAll("[data-cart-count]").forEach((element) => { element.textContent = count; });
+  const profileCount = document.querySelector("[data-profile-cart-count]");
+  if (profileCount) profileCount.textContent = String(count);
 }
 
 function addToCart(productId, quantity = 1) {
-  if (!localStorage.getItem("avine-user")) {
-    window.location.href = `auth.html?redirect=${encodeURIComponent(window.location.href)}`;
+  const product = products.find((item) => item.id === productId);
+  if (!product || !Number.isInteger(quantity) || quantity < 1) {
+    showToast("That product or quantity isn't available.");
     return;
   }
-  const cart = readStorage("avine-cart", {});
-  cart[productId] = (Number(cart[productId]) || 0) + quantity;
-  writeStorage("avine-cart", cart);
+  const cart = getCart();
+  const existing = cart.find((item) => item.id === productId);
+  if (existing) existing.quantity += quantity;
+  else cart.push({id: product.id, name: product.name, price: product.price, image: product.image, quantity});
+  if (!writeStorage(cartStorageKey(), cart)) return;
   updateCartCount();
   showToast("Added to your bag. Good choice.");
+}
+
+function removeFromCart(productId) {
+  const cart = getCart().filter((item) => item.id !== productId);
+  if (!writeStorage(cartStorageKey(), cart)) return;
+  updateCartCount();
+  renderCart();
+  showToast("Item removed from your bag.");
+}
+
+function saveCart(cart) {
+  if (!writeStorage(cartStorageKey(), cart)) return false;
+  updateCartCount();
+  renderCart();
+  return true;
+}
+
+function buyNow(productId) {
+  const product = products.find((item) => item.id === productId);
+  if (!product) {
+    showToast("That product is no longer available.");
+    return;
+  }
+  const checkoutUrl = `checkout.html?mode=buy-now&productId=${encodeURIComponent(product.id)}`;
+  if (!isLoggedIn()) {
+    requireLogin(checkoutUrl);
+    return;
+  }
+  window.location.href = checkoutUrl;
+}
+
+function requireLogin(returnTo) {
+  const target = returnTo || `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  window.location.href = `auth.html?redirect=${encodeURIComponent(target)}`;
+}
+
+function mergeGuestCart() {
+  const guestCart = readStorage("avine-cart:guest", []);
+  if (!Array.isArray(guestCart) || guestCart.length === 0) return;
+  const userKey = cartStorageKey();
+  const userCart = readStorage(userKey, []);
+  const merged = Array.isArray(userCart) ? userCart.reduce((cart, item) => {
+    const product = item && products.find((entry) => entry.id === item.id);
+    if (product && Number.isInteger(item.quantity) && item.quantity > 0) {
+      cart.push({...product, quantity: item.quantity});
+    }
+    return cart;
+  }, []) : [];
+  guestCart.forEach((guestItem) => {
+    const product = products.find((item) => item.id === guestItem.id);
+    if (!product || !Number.isInteger(guestItem.quantity) || guestItem.quantity < 1) return;
+    const existing = merged.find((item) => item.id === product.id);
+    if (existing) existing.quantity += guestItem.quantity;
+    else merged.push({...product, quantity: guestItem.quantity});
+  });
+  if (writeStorage(userKey, merged)) {
+    try {
+      localStorage.removeItem("avine-cart:guest");
+    } catch (error) {
+      console.error("Unable to clear the guest cart after merging.", error);
+      showToast("Your bag was copied to your account, but the guest copy couldn't be cleared.");
+    }
+  }
+}
+
+function updateNavbar() {
+  const user = getCurrentUser();
+  document.querySelectorAll(".site-header").forEach((header) => {
+    const actions = header.querySelector(".header-actions");
+    if (!actions) return;
+    let login = actions.querySelector(".login-link");
+    let signup = actions.querySelector(".signup-link");
+    const cartLink = actions.querySelector(".cart-link");
+    let profile = actions.querySelector(".profile-link");
+    let logout = actions.querySelector(".logout-link");
+
+    if (!login) {
+      login = document.createElement("a");
+      login.className = "login-link text-[11px]";
+      login.href = "auth.html";
+      login.textContent = "Log in";
+      if (cartLink) actions.insertBefore(login, cartLink);
+      else actions.append(login);
+    }
+    if (!signup) {
+      signup = document.createElement("a");
+      signup.className = "signup-link";
+      signup.href = "auth.html?mode=signup";
+      signup.textContent = "Sign up";
+      if (cartLink) actions.insertBefore(signup, cartLink);
+      else actions.append(signup);
+    }
+    if (!profile) {
+      profile = document.createElement("a");
+      profile.className = "profile-link";
+      profile.href = "account.html";
+      profile.setAttribute("aria-label", "Your account");
+      profile.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path></svg>';
+      if (cartLink) actions.insertBefore(profile, cartLink);
+      else actions.append(profile);
+    }
+    if (!logout) {
+      logout = document.createElement("button");
+      logout.type = "button";
+      logout.className = "logout-link";
+      logout.textContent = "Log out";
+      actions.append(logout);
+      logout.addEventListener("click", logoutUser);
+    }
+
+    login.hidden = Boolean(user);
+    signup.hidden = Boolean(user);
+    profile.hidden = !user;
+    logout.hidden = !user;
+    if (cartLink) {
+      cartLink.href = "cart.html";
+      cartLink.hidden = !user;
+    }
+    const navigation = header.querySelector(".main-nav");
+    if (navigation) {
+      for (const [label, href] of [["Log in", "auth.html"], ["Sign up", "auth.html?mode=signup"]]) {
+        if (navigation.querySelector(`.mobile-auth-link[href="${href}"]`)) continue;
+        const link = document.createElement("a");
+        link.className = "mobile-auth-link";
+        link.href = href;
+        link.textContent = label;
+        navigation.append(link);
+      }
+      navigation.querySelectorAll(".mobile-auth-link").forEach((link) => { link.hidden = Boolean(user); });
+      let accountLink = navigation.querySelector(".mobile-account-link");
+      if (!accountLink) {
+        accountLink = document.createElement("a");
+        accountLink.className = "mobile-account-link";
+        accountLink.href = "account.html";
+        accountLink.textContent = "My account";
+        navigation.append(accountLink);
+      }
+      accountLink.hidden = !user;
+      let mobileLogout = navigation.querySelector(".mobile-logout-link");
+      if (!mobileLogout) {
+        mobileLogout = document.createElement("button");
+        mobileLogout.type = "button";
+        mobileLogout.className = "mobile-logout-link";
+        mobileLogout.textContent = "Log out";
+        mobileLogout.addEventListener("click", logoutUser);
+        navigation.append(mobileLogout);
+      }
+      mobileLogout.hidden = !user;
+    }
+  });
+  document.querySelectorAll(".site-footer a[href='auth.html']").forEach((link) => {
+    if (link.textContent.trim().toLowerCase() === "my account") {
+      link.href = user ? "account.html" : "auth.html";
+    }
+  });
+  updateCartCount();
+}
+
+function logoutUser() {
+  try {
+    localStorage.removeItem("avine-session");
+  } catch (error) {
+    console.error("Unable to clear the current session.", error);
+    showToast("We couldn't log you out. Please try again.");
+    return;
+  }
+  window.location.href = "index.html";
+}
+
+function renderCart() {
+  const container = document.querySelector("[data-cart-items]");
+  if (!container) return;
+  const cart = getCart();
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalCount = document.querySelector("[data-cart-total-quantity]");
+  const totalPrice = document.querySelector("[data-cart-total-price]");
+  const checkoutButton = document.querySelector("[data-cart-checkout]");
+  if (totalCount) totalCount.textContent = String(count);
+  if (totalPrice) totalPrice.textContent = formatPrice(subtotal);
+  if (checkoutButton) checkoutButton.hidden = cart.length === 0;
+  container.innerHTML = cart.length ? cart.map((item) => `
+    <article class="cart-item">
+      <img src="${item.image}" alt="${item.name}">
+      <div class="cart-item-details"><h2>${item.name}</h2><p>${formatPrice(item.price)} each</p>
+        <div class="quantity-control"><button data-cart-action="decrease" data-product-id="${item.id}" aria-label="Decrease ${item.name} quantity">−</button><span>${item.quantity}</span><button data-cart-action="increase" data-product-id="${item.id}" aria-label="Increase ${item.name} quantity">+</button></div>
+      </div>
+      <strong>${formatPrice(item.price * item.quantity)}</strong>
+      <button class="cart-remove" data-cart-action="remove" data-product-id="${item.id}">Remove</button>
+    </article>`).join("") : '<div class="empty-state"><h2>Your bag is taking a little breather.</h2><p>Find something thoughtful for your everyday.</p><a class="button button-dark" href="shop.html">Explore the shop ↗</a></div>';
+}
+
+function initCart() {
+  const container = document.querySelector("[data-cart-items]");
+  if (!container) return;
+  if (!isLoggedIn()) {
+    requireLogin("cart.html");
+    return;
+  }
+  container.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-cart-action]");
+    if (!button) return;
+    const productId = button.dataset.productId;
+    const cart = getCart();
+    const item = cart.find((entry) => entry.id === productId);
+    if (!item) return;
+    if (button.dataset.cartAction === "remove") {
+      removeFromCart(productId);
+      return;
+    }
+    item.quantity += button.dataset.cartAction === "increase" ? 1 : -1;
+    saveCart(cart.filter((entry) => entry.quantity > 0));
+  });
+  document.querySelector("[data-cart-clear]").addEventListener("click", () => {
+    if (saveCart([])) showToast("Your bag is now empty.");
+  });
+  document.querySelector("[data-cart-checkout]").addEventListener("click", () => {
+    if (getCart().length) window.location.href = "checkout.html?mode=cart";
+  });
+  renderCart();
 }
 
 // Generates each product card markup from the storefront data array.
@@ -241,26 +509,6 @@ function initHome() {
 
 // Adds shared site interactions: theme toggle, mobile menu, quick-view modal, and cart updates.
 function initGlobalInteractions() {
-  document.querySelectorAll(".site-header").forEach((header) => {
-    const actions = header.querySelector(".header-actions");
-    const navigation = header.querySelector(".main-nav");
-    if (actions && !actions.querySelector(".signup-link")) {
-      const signup = document.createElement("a");
-      signup.className = "signup-link";
-      signup.href = "auth.html?mode=signup";
-      signup.textContent = "Sign up";
-      actions.insertBefore(signup, actions.querySelector(".cart-link"));
-    }
-    if (navigation && !navigation.querySelector(".mobile-auth-link")) {
-      for (const [label, href] of [["Log in", "auth.html"], ["Sign up", "auth.html?mode=signup"]]) {
-        const link = document.createElement("a");
-        link.className = "mobile-auth-link";
-        link.href = href;
-        link.textContent = label;
-        navigation.append(link);
-      }
-    }
-  });
   document.querySelectorAll(".theme-toggle").forEach((button) => button.addEventListener("click", () => {
     const dark = document.documentElement.classList.toggle("dark");
     try {
@@ -278,6 +526,7 @@ function initGlobalInteractions() {
   const modal = document.querySelector("#quick-view-modal");
   let selectedProduct = null;
   const closeModal = () => {
+    if (!modal) return;
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
@@ -297,7 +546,10 @@ function initGlobalInteractions() {
       document.body.classList.add("modal-open");
     }
     const addButton = event.target.closest("[data-add-cart], [data-buy-now]");
-    if (addButton) addToCart(addButton.dataset.addCart || addButton.dataset.buyNow);
+    if (addButton) {
+      if (addButton.dataset.buyNow) buyNow(addButton.dataset.buyNow);
+      else addToCart(addButton.dataset.addCart);
+    }
     if (event.target.closest("[data-close-modal]") || event.target === modal) closeModal();
     const quantityButton = event.target.closest("[data-quantity]");
     if (quantityButton) {
@@ -307,7 +559,7 @@ function initGlobalInteractions() {
     }
     if (event.target.closest(".quick-add") && selectedProduct) {
       addToCart(selectedProduct.id, Number(modal.querySelector("[data-quantity-value]").textContent));
-      if (localStorage.getItem("avine-user")) closeModal();
+      if (isLoggedIn()) closeModal();
     }
   });
   document.addEventListener("keydown", (event) => {
@@ -319,7 +571,7 @@ function initGlobalInteractions() {
     form.reset();
     showToast("You're on the list. Look out for a little good news.");
   }));
-  updateCartCount();
+  updateNavbar();
 }
 
 // Handles the contact form submission UX and success state messaging.
@@ -342,6 +594,10 @@ function initAuth() {
   const forms = document.querySelectorAll(".auth-form");
   if (!forms.length) return;
   const params = new URLSearchParams(window.location.search);
+  if (isLoggedIn()) {
+    window.location.replace(safeLocalRedirect(params.get("redirect")) || "account.html");
+    return;
+  }
   const switchForm = (name) => {
     forms.forEach((form) => form.classList.toggle("active", form.classList.contains(`${name}-form`)));
     const headerPrompt = document.querySelector(".auth-header-prompt");
@@ -354,40 +610,181 @@ function initAuth() {
   };
   document.querySelectorAll("[data-auth-switch]").forEach((button) => button.addEventListener("click", () => switchForm(button.dataset.authSwitch)));
   if (params.get("mode") === "signup") switchForm("signup");
-  document.querySelector("[data-forgot-password]").addEventListener("click", (event) => {
+  const forgot = document.querySelector("[data-forgot-password]");
+  if (forgot) forgot.addEventListener("click", (event) => {
     event.preventDefault();
     showToast("Password reset help: email hello@avine.ph.");
   });
-  document.querySelector(".google-button").addEventListener("click", () => showToast("Google sign-in isn't connected in this demo."));
-  document.querySelectorAll("[data-auth-form]").forEach((form) => form.addEventListener("submit", (event) => {
+  const googleButton = document.querySelector(".google-button");
+  if (googleButton) googleButton.addEventListener("click", () => showToast("Google sign-in isn't connected in this demo."));
+  document.querySelectorAll("[data-auth-form]").forEach((form) => form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;
+    const submitButton = form.querySelector('[type="submit"]');
+    if (submitButton.disabled) return;
+    submitButton.disabled = true;
     const error = form.querySelector(".auth-error");
     error.classList.remove("show");
-    if (form.dataset.authForm === "signup") {
-      const data = new FormData(form);
-      if (data.get("password") !== data.get("confirmPassword")) {
-        error.textContent = "Those passwords don't match. Give it another try.";
-        error.classList.add("show");
-        return;
+    const data = new FormData(form);
+    const email = normalizeEmail(String(data.get("email") || ""));
+    const password = String(data.get("password") || "");
+    const accounts = getAccounts();
+    try {
+      if (form.dataset.authForm === "signup") {
+        const firstName = String(data.get("firstName") || "").trim();
+        const lastName = String(data.get("lastName") || "").trim();
+        if (!firstName || !lastName) throw new Error("Enter your first and last name.");
+        if (password !== data.get("confirmPassword")) throw new Error("Those passwords don't match. Give it another try.");
+        if (accounts.some((account) => account.email === email)) throw new Error("An account with that email already exists. Log in instead.");
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const saltHex = Array.from(salt, (byte) => byte.toString(16).padStart(2, "0")).join("");
+        const passwordHash = await hashPassword(password, salt);
+        const created = {firstName, lastName, email, passwordSalt: saltHex, passwordHash};
+        if (!writeStorage(accountKey, [...accounts, created])) throw new Error("We couldn't save your account in this browser.");
+        if (!writeStorage("avine-session", {email})) throw new Error("Your account was created, but we couldn't start your session.");
+        mergeGuestCart();
+        showToast("Your account is ready. Welcome to Avine!");
+      } else {
+        const account = accounts.find((item) => item.email === email);
+        if (!account) throw new Error("We couldn't find an account for that email. Check it or sign up.");
+        const salt = Uint8Array.from(account.passwordSalt.match(/.{2}/g) || [], (byte) => parseInt(byte, 16));
+        const passwordHash = await hashPassword(password, salt);
+        if (passwordHash !== account.passwordHash) throw new Error("That password doesn't match this account.");
+        if (!writeStorage("avine-session", {email})) throw new Error("We couldn't start your session. Please try again.");
+        mergeGuestCart();
+        showToast("You're signed in. Welcome back!");
       }
-      if (!data.get("terms")) {
-        error.textContent = "Please agree to the Terms & Policy to continue.";
-        error.classList.add("show");
-        return;
-      }
-      writeStorage("avine-user", {name: data.get("name"), email: data.get("email")});
-      showToast("Account created for this demo. You're all set!");
-    } else {
-      const data = new FormData(form);
-      writeStorage("avine-user", {email: data.get("email")});
-      showToast("You're signed in for this demo.");
+    } catch (caught) {
+      error.textContent = caught instanceof Error ? caught.message : "We couldn't complete that request. Please try again.";
+      error.classList.add("show");
+      submitButton.disabled = false;
+      return;
     }
     window.setTimeout(() => {
       const redirect = params.get("redirect");
-      window.location.href = redirect && new URL(redirect, window.location.href).origin === window.location.origin ? redirect : "index.html";
+      window.location.href = safeLocalRedirect(redirect) || "index.html";
     }, 900);
   }));
+}
+
+async function hashPassword(password, salt) {
+  if (!crypto.subtle) throw new Error("Secure password storage isn't available in this browser. Try a modern browser over HTTPS.");
+  const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const digest = await crypto.subtle.deriveBits({name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256"}, material, 256);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function safeLocalRedirect(value) {
+  if (!value) return null;
+  try {
+    const target = new URL(value, window.location.href);
+    if (target.origin !== window.location.origin || target.pathname.endsWith("/auth.html")) return null;
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch (error) {
+    console.error("Invalid post-login redirect.", error);
+    return null;
+  }
+}
+
+function initProfile() {
+  const form = document.querySelector("[data-profile-form]");
+  if (!form) return;
+  const user = getCurrentUser();
+  if (!user) {
+    requireLogin("account.html");
+    return;
+  }
+  form.elements.firstName.value = user.firstName;
+  form.elements.lastName.value = user.lastName;
+  form.elements.email.value = user.email;
+  const cartCount = document.querySelector("[data-profile-cart-count]");
+  if (cartCount) cartCount.textContent = String(getCart().reduce((sum, item) => sum + item.quantity, 0));
+  const orderList = document.querySelector("[data-order-list]");
+  const orders = readStorage(`avine-orders:${encodeURIComponent(user.email)}`, []);
+  if (orderList) {
+    orderList.innerHTML = Array.isArray(orders) && orders.length
+      ? orders.map((order) => `<article class="order-row"><div><strong>Order ${order.id}</strong><span>${new Date(order.createdAt).toLocaleDateString()}</span></div><strong>${formatPrice(order.total)}</strong></article>`).join("")
+      : '<p class="muted-copy">Your confirmed orders will appear here.</p>';
+  }
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    const submitButton = form.querySelector('[type="submit"]');
+    if (submitButton.disabled) return;
+    submitButton.disabled = true;
+    const accounts = getAccounts();
+    const index = accounts.findIndex((account) => account.email === user.email);
+    if (index < 0) {
+      showToast("We couldn't find your account details. Please log in again.");
+      return;
+    }
+    accounts[index] = {...accounts[index], firstName: form.elements.firstName.value.trim(), lastName: form.elements.lastName.value.trim()};
+    if (!writeStorage(accountKey, accounts)) return;
+    showToast("Your profile has been updated.");
+  });
+  document.querySelectorAll("[data-logout]").forEach((button) => button.addEventListener("click", logoutUser));
+}
+
+function initCheckout() {
+  const form = document.querySelector("[data-checkout-form]");
+  if (!form) return;
+  const user = getCurrentUser();
+  if (!user) {
+    requireLogin(`${window.location.pathname}${window.location.search}`);
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const isBuyNow = params.get("mode") === "buy-now";
+  let items;
+  if (isBuyNow) {
+    const product = products.find((item) => item.id === params.get("productId"));
+    if (!product) {
+      window.location.href = "shop.html";
+      return;
+    }
+    items = [{...product, quantity: 1}];
+  } else {
+    items = getCart();
+    if (!items.length) {
+      window.location.href = "cart.html";
+      return;
+    }
+  }
+  const summary = document.querySelector("[data-checkout-summary]");
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  summary.innerHTML = items.map((item) => `<div class="checkout-item"><span>${item.name} × ${item.quantity}</span><strong>${formatPrice(item.price * item.quantity)}</strong></div>`).join("") +
+    `<div class="checkout-total"><span>Total</span><strong>${formatPrice(total)}</strong></div>`;
+  form.elements.email.value = user.email;
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    const order = {
+      id: `AV-${Date.now().toString(36).toUpperCase()}`,
+      createdAt: new Date().toISOString(),
+      items: items.map(({id, name, price, image, quantity}) => ({id, name, price, image, quantity})),
+      total,
+      shipping: {
+        name: form.elements.name.value.trim(),
+        email: form.elements.email.value.trim(),
+        address: form.elements.address.value.trim(),
+        city: form.elements.city.value.trim(),
+        postalCode: form.elements.postalCode.value.trim()
+      }
+    };
+    const ordersKey = `avine-orders:${encodeURIComponent(user.email)}`;
+    const orders = readStorage(ordersKey, []);
+    if (!writeStorage(ordersKey, [...(Array.isArray(orders) ? orders : []), order]) ||
+      (!isBuyNow && !writeStorage(cartStorageKey(), []))) {
+      submitButton.disabled = false;
+      return;
+    }
+    updateCartCount();
+    document.querySelector("[data-checkout-panel]").hidden = true;
+    const success = document.querySelector("[data-order-success]");
+    success.hidden = false;
+    success.querySelector("[data-order-number]").textContent = order.id;
+    showToast("Order confirmed. Thank you!");
+  });
 }
 
 // Initializes all page-specific behavior once the DOM is ready.
@@ -397,4 +794,31 @@ document.addEventListener("DOMContentLoaded", () => {
   initShop();
   initContact();
   initAuth();
+  initCart();
+  initProfile();
+  initCheckout();
+});
+
+window.addEventListener("pageshow", () => {
+  updateNavbar();
+  if (!isLoggedIn()) {
+    if (document.querySelector("[data-cart-items]")) requireLogin("cart.html");
+    else if (document.querySelector("[data-checkout-form]")) requireLogin(`${window.location.pathname}${window.location.search}`);
+    else if (document.querySelector("[data-profile-form]")) requireLogin("account.html");
+  }
+});
+
+window.addEventListener("storage", (event) => {
+  if (["avine-session", accountKey].includes(event.key)) {
+    updateNavbar();
+    if (!isLoggedIn()) {
+      if (document.querySelector("[data-cart-items]")) requireLogin("cart.html");
+      else if (document.querySelector("[data-checkout-form]")) requireLogin(`${window.location.pathname}${window.location.search}`);
+      else if (document.querySelector("[data-profile-form]")) requireLogin("account.html");
+    }
+  }
+  if (event.key === cartStorageKey()) {
+    updateCartCount();
+    renderCart();
+  }
 });
