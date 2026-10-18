@@ -13,7 +13,7 @@ const products = [
   {id:"wear-01",name:"Daylight Watch",category:"Wearables",price:18490,tag:"Bestseller",image:"https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=850&q=85",description:"A thoughtful companion for your day, with gentle wellness insights, a bright always-on display, and a battery that lasts."},
   {id:"wear-02",name:"Daylight Band",category:"Wearables",price:2490,tag:"",image:"https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?auto=format&fit=crop&w=850&q=85",description:"A comfortable, easy-to-change band in a soft, durable finish. A small detail that makes your watch feel like yours."},
   {id:"wear-03",name:"Move Tracker",category:"Wearables",price:6490,tag:"",image:"https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?auto=format&fit=crop&w=850&q=85",description:"A simple, lightweight way to keep a kind eye on movement, rest, and the rhythms of your everyday."},
-  {id:"access-01",name:"Pocket Charger",category:"Accessories",price:2990,tag:"",image:"https://images.unsplash.com/photo-1609592424968-4a1fda5e6e4b?auto=format&fit=crop&w=850&q=85",description:"A slim, dependable power boost that slips into any bag. Thoughtful charging, right when you need it."},
+  {id:"access-01",name:"Pocket Charger",category:"Accessories",price:2990,tag:"",image:"https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=850&q=85",description:"A slim, dependable power boost that slips into any bag. Thoughtful charging, right when you need it."},
   {id:"access-02",name:"Wireless Pad",category:"Accessories",price:3990,tag:"",image:"https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=850&q=85",description:"A tidy place to power up. Set your phone down, let it charge, and get on with your day."},
   {id:"access-03",name:"Carry-All Pouch",category:"Accessories",price:1790,tag:"Just landed",image:"https://images.unsplash.com/photo-1622560480654-d96214fdc887?auto=format&fit=crop&w=850&q=85",description:"A soft, sturdy home for your everyday essentials. Room for cables, earbuds, and all the little things you reach for."}
 ];
@@ -343,13 +343,21 @@ function initCart() {
 
 // Generates each product card markup from the storefront data array.
 function productCard(product) {
+  const description = product.description.length > 78 ? `${product.description.slice(0, 78).trim()}…` : product.description;
   return `<article class="product-card min-w-0" data-product-id="${product.id}">
     <div class="product-image-wrap">
-      <img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">
+      <img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=850&q=85';">
       ${product.tag ? `<span class="product-tag">${product.tag}</span>` : ""}
       <button class="quick-view-button" data-quick-view="${product.id}">Quick view ↗</button>
     </div>
-    <div class="product-info flex items-start justify-between gap-2 pt-[13px]"><div class="min-w-0 flex-1"><h3>${product.name}</h3><p class="product-category">${product.category}</p></div><span class="product-price shrink-0">${formatPrice(product.price)}</span></div>
+    <div class="product-info flex items-start justify-between gap-2 pt-[13px]">
+      <div class="min-w-0 flex-1">
+        <h3>${product.name}</h3>
+        <p class="product-category">${product.category}</p>
+      </div>
+      <span class="product-price shrink-0">${formatPrice(product.price)}</span>
+    </div>
+    <p class="product-description">${description}</p>
     <div class="product-actions mx-[14px] mt-2 flex gap-2 max-[760px]:mx-[10px] max-[760px]:mt-[7px]">
       <button class="product-add flex h-[35px] min-w-0 flex-1 cursor-pointer items-center justify-center border border-[var(--line)] bg-transparent px-1 text-center text-[10px] transition-colors hover:border-[var(--ink)] hover:bg-[var(--ink)] hover:text-white dark:hover:border-[var(--ink)] dark:hover:bg-[var(--ink)] max-[760px]:text-[9px]" data-add-cart="${product.id}">Add to cart <span class="max-[760px]:hidden">+</span></button>
       <button class="product-add buy-now flex h-[35px] min-w-0 flex-1 cursor-pointer items-center justify-center border border-[var(--accent-dark)] bg-[var(--accent-dark)] px-1 text-center text-[10px] text-white transition-colors hover:border-[var(--ink)] hover:bg-[var(--ink)] dark:hover:border-[var(--ink)] dark:hover:bg-[var(--ink)] max-[760px]:text-[9px]" data-buy-now="${product.id}">Buy now</button>
